@@ -1,0 +1,49 @@
+{
+  "name": "prd",
+  "version": "1.0.0",
+  "description": "Next.js 14+ landing page with TailwindCSS and Supabase",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "lint:fix": "next lint --fix",
+    "type-check": "tsc --noEmit",
+    "export": "next build && next export",
+    "analyze": "ANALYZE=true npm run build",
+    "clean": "rm -rf .next out",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "env:check": "node scripts/check-env.js",
+    "validate:config": "node scripts/validate-config.js",
+    "test:api": "node scripts/test-api.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.4",
+    "@types/node": "^22.10.2",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "clsx": "^2.1.1",
+    "next": "^15.4.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tailwind-merge": "^3.3.1",
+    "typescript": "^5.7.2"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.20",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "^15.4.2",
+    "tailwindcss": "^3.4.17"
+  },
+  "keywords": [
+    "nextjs",
+    "typescript",
+    "tailwindcss",
+    "supabase"
+  ],
+  "author": "",
+  "license": "ISC"
+}

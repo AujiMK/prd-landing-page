@@ -1,0 +1,140 @@
+[build]
+  # Build command for Next.js
+  command = "npm run build"
+  
+  # Publish directory (Next.js static export)
+  publish = "out"
+  
+  # Build environment
+  [build.environment]
+    NODE_VERSION = "18"
+    NPM_FLAGS = "--legacy-peer-deps"
+
+[build.processing]
+  # Skip processing for static assets
+  skip_processing = false
+
+# Redirect rules for SPA routing
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# API redirects for serverless functions
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
+# Security headers
+[[headers]]
+  for = "/*"
+  [headers.values]
+    # Security headers
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+    
+    # Content Security Policy
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://api.supabase.co https://www.google-analytics.com; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';"
+    
+    # HSTS (HTTP Strict Transport Security)
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
+
+# Caching headers for static assets
+[[headers]]
+  for = "/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.woff2"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# HTML files - no cache for dynamic content
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# API routes - no cache
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+    Pragma = "no-cache"
+    Expires = "0"
+
+# Environment variables (placeholders for Netlify dashboard)
+[context.production.environment]
+  NEXT_PUBLIC_SUPABASE_URL = "your-production-supabase-url"
+  NEXT_PUBLIC_SUPABASE_ANON_KEY = "your-production-supabase-anon-key"
+  SUPABASE_SERVICE_ROLE_KEY = "your-production-supabase-service-role-key"
+  NEXTAUTH_SECRET = "your-nextauth-secret"
+  NEXTAUTH_URL = "https://your-domain.netlify.app"
+
+[context.deploy-preview.environment]
+  NEXT_PUBLIC_SUPABASE_URL = "your-staging-supabase-url"
+  NEXT_PUBLIC_SUPABASE_ANON_KEY = "your-staging-supabase-anon-key"
+  SUPABASE_SERVICE_ROLE_KEY = "your-staging-supabase-service-role-key"
+  NEXTAUTH_SECRET = "your-nextauth-secret"
+  NEXTAUTH_URL = "https://your-preview-domain.netlify.app"
+
+[context.branch-deploy.environment]
+  NEXT_PUBLIC_SUPABASE_URL = "your-development-supabase-url"
+  NEXT_PUBLIC_SUPABASE_ANON_KEY = "your-development-supabase-anon-key"
+  SUPABASE_SERVICE_ROLE_KEY = "your-development-supabase-service-role-key"
+  NEXTAUTH_SECRET = "your-nextauth-secret"
+  NEXTAUTH_URL = "https://your-branch-domain.netlify.app"
+
+# Functions configuration (if using Netlify Functions)
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+# Edge functions (if using Netlify Edge Functions)
+[[edge_functions]]
+  function = "api-handler"
+  path = "/api/*"
+
+# Form handling
+[[redirects]]
+  from = "/submit-interest"
+  to = "/api/submit-interest"
+  status = 200
+  force = true
+
+# Sitemap and robots.txt
+[[redirects]]
+  from = "/sitemap.xml"
+  to = "/api/sitemap"
+  status = 200
+
+[[redirects]]
+  from = "/robots.txt"
+  to = "/api/robots"
+  status = 200
+
+# Error pages
+[[redirects]]
+  from = "/404"
+  to = "/404.html"
+  status = 404
+
+[[redirects]]
+  from = "/500"
+  to = "/500.html"
+  status = 500 
