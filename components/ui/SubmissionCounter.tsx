@@ -2,6 +2,7 @@
 
 import { useSubmissionCount } from '@/lib/hooks'
 import { H4, Paragraph } from '@/components/ui'
+import { useState, useEffect } from 'react'
 
 interface SubmissionCounterProps {
   className?: string
@@ -9,12 +10,52 @@ interface SubmissionCounterProps {
   autoRefresh?: boolean
 }
 
+// Fallback component when hook fails
+function FallbackCounter({ className }: { className?: string }) {
+  return (
+    <div className={`text-center ${className}`}>
+      <div className="bg-gray-50 border border-gray-200 rounded-md p-4">
+        <H4 className="text-gray-900 mb-2">
+          Community Interest
+        </H4>
+        <div className="text-3xl font-bold text-gray-900 mb-2">
+          0
+        </div>
+        <Paragraph size="sm" className="text-gray-700">
+          people have shown interest
+        </Paragraph>
+      </div>
+    </div>
+  )
+}
+
 export default function SubmissionCounter({ 
   className = '', 
   showLastUpdated = false,
   autoRefresh = true 
 }: SubmissionCounterProps) {
+  const [hasError, setHasError] = useState(false)
+  
+  // Always call the hook unconditionally
   const { count, isLoading, error, lastUpdated, refreshCount } = useSubmissionCount(autoRefresh)
+  
+  // Error boundary effect
+  useEffect(() => {
+    const handleError = (error: ErrorEvent) => {
+      if (error.message.includes('useSubmissionCount') || error.message.includes('Failed to fetch')) {
+        console.error('SubmissionCounter error:', error)
+        setHasError(true)
+      }
+    }
+    
+    window.addEventListener('error', handleError)
+    return () => window.removeEventListener('error', handleError)
+  }, [])
+
+  // If there was an error, show fallback
+  if (hasError) {
+    return <FallbackCounter className={className} />
+  }
 
   const formatLastUpdated = (timestamp: string) => {
     const date = new Date(timestamp)
@@ -39,7 +80,10 @@ export default function SubmissionCounter({
             Failed to load submission count
           </Paragraph>
           <button
-            onClick={refreshCount}
+            onClick={() => {
+              setHasError(false)
+              refreshCount()
+            }}
             className="mt-2 text-sm text-red-700 underline hover:no-underline"
           >
             Try again

@@ -41,6 +41,14 @@ export function useSubmissionCount(autoRefresh: boolean = true): UseSubmissionCo
     // Don't fetch during SSR
     if (typeof window === 'undefined') return
     
+    // Check if Supabase is available
+    if (!supabase) {
+      console.error('Supabase client not available')
+      setError('Database connection not available')
+      setFallbackCount()
+      return
+    }
+    
     setIsLoading(true)
     setError(null)
 
@@ -50,6 +58,7 @@ export function useSubmissionCount(autoRefresh: boolean = true): UseSubmissionCo
         .select('*', { count: 'exact', head: true })
 
       if (countError) {
+        console.error('Supabase count error:', countError)
         throw new Error(countError.message || 'Failed to fetch count')
       }
 
@@ -70,6 +79,14 @@ export function useSubmissionCount(autoRefresh: boolean = true): UseSubmissionCo
     // Don't fetch during SSR
     if (typeof window === 'undefined') return
     
+    // Check if Supabase is available
+    if (!supabase) {
+      console.error('Supabase client not available')
+      setError('Database connection not available')
+      setFallbackCount()
+      return
+    }
+    
     if (isLoading) return // Prevent multiple simultaneous requests
     
     setIsLoading(true)
@@ -81,6 +98,7 @@ export function useSubmissionCount(autoRefresh: boolean = true): UseSubmissionCo
         .select('*', { count: 'exact', head: true })
 
       if (countError) {
+        console.error('Supabase count error:', countError)
         throw new Error(countError.message || 'Failed to refresh count')
       }
 
@@ -105,7 +123,10 @@ export function useSubmissionCount(autoRefresh: boolean = true): UseSubmissionCo
   useEffect(() => {
     // Only fetch on client side to avoid SSR issues
     if (typeof window !== 'undefined') {
-      fetchCount()
+      // Add a small delay to ensure Supabase is initialized
+      const timer = setTimeout(() => {
+        fetchCount()
+      }, 100)
       
       // Set fallback count after 5 seconds if still loading
       const fallbackTimer = setTimeout(() => {
@@ -117,7 +138,10 @@ export function useSubmissionCount(autoRefresh: boolean = true): UseSubmissionCo
         })
       }, 5000)
       
-      return () => clearTimeout(fallbackTimer)
+      return () => {
+        clearTimeout(timer)
+        clearTimeout(fallbackTimer)
+      }
     }
   }, [fetchCount, isLoading])
 
