@@ -10,7 +10,9 @@ export interface CheckboxProps extends Omit<React.InputHTMLAttributes<HTMLInputE
 
 const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
   ({ className, label, helperText, error, indeterminate = false, id, ...props }, ref) => {
-    const checkboxId = id || `checkbox-${React.useId()}`
+    // Always call useId() unconditionally
+    const generatedId = React.useId()
+    const checkboxId = id || `checkbox-${generatedId}`
     
     const baseCheckboxStyles = 'h-4 w-4 rounded border border-gray-300 bg-white text-primary-600 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50'
     

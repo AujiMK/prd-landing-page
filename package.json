@@ -10,15 +10,13 @@
     "lint": "next lint",
     "lint:fix": "next lint --fix",
     "type-check": "tsc --noEmit",
-    "export": "next build && next export",
     "analyze": "ANALYZE=true npm run build",
     "clean": "rm -rf .next out",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "env:check": "node scripts/check-env.js",
-    "validate:config": "node scripts/validate-config.js",
-    "test:api": "node scripts/test-api.js"
+    "validate:config": "node scripts/validate-config.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",

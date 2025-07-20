@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react'
+import { supabase } from '@/lib/supabase'
 import type { InterestFormData, ApiResponse } from '@/lib/types'
 
 interface FormState {
@@ -45,15 +46,16 @@ export function useInterestForm(): UseInterestFormReturn {
     setFormData(prev => ({ ...prev, [field]: value }))
     
     // Clear field error when user starts typing
-    if (errors[field as keyof FormErrors]) {
-      setErrors(prev => ({ ...prev, [field]: undefined }))
-    }
+    setErrors(prev => {
+      if (prev[field as keyof FormErrors]) {
+        return { ...prev, [field]: undefined }
+      }
+      return prev
+    })
     
     // Clear success state when form is modified
-    if (isSuccess) {
-      setIsSuccess(false)
-    }
-  }, [errors, isSuccess])
+    setIsSuccess(false)
+  }, [])
 
   // Validate individual field
   const validateField = useCallback((field: keyof FormState) => {
@@ -101,7 +103,7 @@ export function useInterestForm(): UseInterestFormReturn {
     return nameValid && emailValid
   }, [validateField])
 
-  // Submit form
+  // Submit form directly to Supabase
   const submitForm = useCallback(async (): Promise<ApiResponse | null> => {
     // Validate form before submission
     if (!validateForm()) {
@@ -113,30 +115,67 @@ export function useInterestForm(): UseInterestFormReturn {
     setIsSuccess(false)
 
     try {
-      const response = await fetch('/api/submit-interest', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      })
+      // Check for existing submission
+      const { data: existingSubmission, error: checkError } = await supabase
+        .from('interest_submissions')
+        .select('id, created_at')
+        .eq('email', formData.email.trim().toLowerCase())
+        .single()
 
-      const result: ApiResponse = await response.json()
-
-      if (response.ok && result.success) {
-        setIsSuccess(true)
-        resetForm()
-        return result
-      } else {
-        // Handle validation errors
-        if (response.status === 400 && result.errors) {
-          setErrors(result.errors)
-        } else {
-          // Handle other errors
-          setErrors({ submit: result.message || result.error || 'Submission failed' })
+      if (checkError && checkError.code !== 'PGRST116') {
+        console.error('Database check error:', checkError)
+        setErrors({ submit: 'Failed to check existing submission' })
+        return {
+          success: false,
+          error: 'Database error',
+          message: 'Failed to check existing submission'
         }
-        return result
       }
+
+      if (existingSubmission) {
+        setErrors({ submit: 'This email is already registered for interest updates' })
+        return {
+          success: false,
+          error: 'Email already exists',
+          message: 'This email is already registered for interest updates'
+        }
+      }
+
+      // Insert new submission
+      const { data: submission, error: insertError } = await supabase
+        .from('interest_submissions')
+        .insert({
+          name: formData.name.trim(),
+          email: formData.email.trim().toLowerCase(),
+          subscribed_to_updates: formData.subscribedToUpdates
+        })
+        .select()
+        .single()
+
+      if (insertError) {
+        console.error('Database insert error:', insertError)
+        setErrors({ submit: 'Failed to submit interest form' })
+        return {
+          success: false,
+          error: 'Database error',
+          message: 'Failed to submit interest form'
+        }
+      }
+
+      // Success
+      setIsSuccess(true)
+      
+      // Notify other components about the submission
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('interest-form-submitted'))
+      }
+
+      return {
+        success: true,
+        data: submission,
+        message: 'Interest form submitted successfully!'
+      }
+
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Network error. Please try again.'
       setErrors({ submit: errorMessage })

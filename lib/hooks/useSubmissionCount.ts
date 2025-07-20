@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { supabase } from '@/lib/supabase'
 import type { ApiResponse } from '@/lib/types'
 
 interface SubmissionCountData {
@@ -27,12 +28,15 @@ export function useSubmissionCount(autoRefresh: boolean = true): UseSubmissionCo
   
   // Set a fallback count if API fails
   const setFallbackCount = useCallback(() => {
-    if (count === null) {
-      setCount(0) // Default to 0 if we can't fetch the real count
-    }
-  }, [count])
+    setCount(prevCount => {
+      if (prevCount === null) {
+        return 0 // Default to 0 if we can't fetch the real count
+      }
+      return prevCount
+    })
+  }, [])
 
-  // Fetch submission count
+  // Fetch submission count directly from Supabase
   const fetchCount = useCallback(async () => {
     // Don't fetch during SSR
     if (typeof window === 'undefined') return
@@ -41,27 +45,16 @@ export function useSubmissionCount(autoRefresh: boolean = true): UseSubmissionCo
     setError(null)
 
     try {
-      const response = await fetch('/api/interest', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        // Add timeout to prevent hanging requests
-        signal: AbortSignal.timeout(10000) // 10 second timeout
-      })
+      const { count: submissionCount, error: countError } = await supabase
+        .from('interest_submissions')
+        .select('*', { count: 'exact', head: true })
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      if (countError) {
+        throw new Error(countError.message || 'Failed to fetch count')
       }
 
-      const result: ApiResponse<{ count: number }> = await response.json()
-
-      if (result.success && result.data) {
-        setCount(result.data.count)
-        setLastUpdated(new Date().toISOString())
-      } else {
-        throw new Error(result.message || result.error || 'Failed to fetch count')
-      }
+      setCount(submissionCount || 0)
+      setLastUpdated(new Date().toISOString())
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch submission count'
       setError(errorMessage)
@@ -70,7 +63,7 @@ export function useSubmissionCount(autoRefresh: boolean = true): UseSubmissionCo
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [setFallbackCount])
 
   // Refresh count (same as fetch but with different loading state)
   const refreshCount = useCallback(async () => {
@@ -83,27 +76,16 @@ export function useSubmissionCount(autoRefresh: boolean = true): UseSubmissionCo
     setError(null)
 
     try {
-      const response = await fetch('/api/interest', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        // Add timeout to prevent hanging requests
-        signal: AbortSignal.timeout(10000) // 10 second timeout
-      })
+      const { count: submissionCount, error: countError } = await supabase
+        .from('interest_submissions')
+        .select('*', { count: 'exact', head: true })
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      if (countError) {
+        throw new Error(countError.message || 'Failed to refresh count')
       }
 
-      const result: ApiResponse<{ count: number }> = await response.json()
-
-      if (result.success && result.data) {
-        setCount(result.data.count)
-        setLastUpdated(new Date().toISOString())
-      } else {
-        throw new Error(result.message || result.error || 'Failed to refresh count')
-      }
+      setCount(submissionCount || 0)
+      setLastUpdated(new Date().toISOString())
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to refresh submission count'
       setError(errorMessage)
@@ -112,7 +94,7 @@ export function useSubmissionCount(autoRefresh: boolean = true): UseSubmissionCo
     } finally {
       setIsLoading(false)
     }
-  }, [isLoading])
+  }, [isLoading, setFallbackCount])
 
   // Clear error
   const clearError = useCallback(() => {
@@ -127,14 +109,17 @@ export function useSubmissionCount(autoRefresh: boolean = true): UseSubmissionCo
       
       // Set fallback count after 5 seconds if still loading
       const fallbackTimer = setTimeout(() => {
-        if (isLoading && count === null) {
-          setFallbackCount()
-        }
+        setCount(prevCount => {
+          if (isLoading && prevCount === null) {
+            return 0
+          }
+          return prevCount
+        })
       }, 5000)
       
       return () => clearTimeout(fallbackTimer)
     }
-  }, [fetchCount, isLoading, count, setFallbackCount])
+  }, [fetchCount, isLoading])
 
   // Auto-refresh every 30 seconds if enabled
   useEffect(() => {
@@ -177,5 +162,7 @@ export function useSubmissionCount(autoRefresh: boolean = true): UseSubmissionCo
 
 // Utility function to dispatch form submission event
 export function notifyFormSubmission() {
-  window.dispatchEvent(new CustomEvent('interest-form-submitted'))
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('interest-form-submitted'))
+  }
 } 

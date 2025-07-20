@@ -26,15 +26,13 @@ const Heading = React.forwardRef<HTMLHeadingElement, HeadingProps>(
     
     const Component = `h${level}` as keyof JSX.IntrinsicElements
     
-    return (
-      <Component
-        ref={ref}
-        className={cn(baseStyles, variants[level], className)}
-        {...props}
-      >
-        {children}
-      </Component>
-    )
+    const componentProps = {
+      ref,
+      className: cn(baseStyles, variants[level], className),
+      ...props
+    } as React.HTMLAttributes<HTMLHeadingElement>
+    
+    return React.createElement(Component, componentProps, children)
   }
 )
 
